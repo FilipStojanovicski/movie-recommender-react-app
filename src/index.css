@@ -1,0 +1,134 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+main {
+  padding: 0 1rem;
+}
+
+.movie-ratings {
+  margin: auto;
+  max-width: 768px;
+  border-radius: 0.5rem;
+  border: 0.125rem solid lightgrey;
+  overflow-y: scroll;
+  max-height: 384px;
+  padding: 0.5rem 1rem;
+}
+
+.movie-rating {
+  padding: 0.5rem 0;
+}
+
+.movie-rating h2{
+  text-align: start;
+}
+
+.movie-rating .selectors{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.genre.selector{
+  flex-grow: 1.5
+}
+.movie.selector{
+  flex-grow: 4.5
+}
+.rating.selector{
+  flex-grow: 1
+}
+
+.submit {
+  background-color: royalblue;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  opacity: 0.7;
+  transition: 0.3s;
+}
+.submit:hover{
+  opacity:1;
+  cursor: pointer;
+}
+
+.loader {
+  border: 16px solid #f3f3f3; /* Light grey */
+  border-top: 16px solid #3498db; /* Blue */
+  border-radius: 50%;
+  margin: auto;
+  width: 60px;
+  height: 60px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ratings-results-container {
+  padding: .5rem 0;
+}
+
+.ratings-results .rating{
+  display: flex;
+  flex-wrap: wrap;
+  padding: .5rem 0;
+  border: 0.0675rem solid lightgrey;
+  border-radius: 0.125rem;
+}
+
+.rating .title{
+  flex-grow: 2;
+}
+.rating .movie-img{
+  flex-grow: 1;
+}
+
+.predicted-ratings {
+  margin: auto;
+  max-width: 768px;
+  border-radius: 0.5rem;
+  border: 0.125rem solid lightgrey;
+  padding: 0.5rem 1rem;
+}
+.predicted-ratings .selector{
+  width: 180px;
+  margin: auto;
+}
+
+.prediction-options{
+  font-size: 1.125rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  justify-content: center;
+}
+.prediction-options .selector{
+  border: 0.0675rem solid lightgrey;
+  border-radius: 0.25rem;
+  color: grey;
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.prediction-form{
+  margin: 20px auto;
+  max-width: 768px;
+}
+
+
