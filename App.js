@@ -418,6 +418,8 @@ var App = function (_React$Component3) {
           _this7.setState({ predictedRatings: res.data, loadingPredictions: false });
         } else if (res.status == 400) {
           _this7.setState({ submissionError: true, loadingPredictions: false });
+        } else if (res.status == 500) {
+          _this7.setState({ submissionError: true, loadingPredictions: false });
         }
       }).catch(function (error) {
         console.log(error);

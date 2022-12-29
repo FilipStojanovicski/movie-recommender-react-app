@@ -345,6 +345,8 @@ class App extends React.Component {
             this.setState({ predictedRatings: res.data, loadingPredictions: false })
           } else if (res.status == 400){
             this.setState({submissionError: true, loadingPredictions: false })
+          } else if (res.status == 500){
+            this.setState({submissionError: true, loadingPredictions: false })
           }
           
         }
