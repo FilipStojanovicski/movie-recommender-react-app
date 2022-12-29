@@ -26,6 +26,7 @@ package-lock.json
 
 # Yarn stuff
 yarn.lock
+
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -34,3 +35,4 @@ yarn.lock
 !.yarn/sdks
 !.yarn/versions
 !.yarn/cache
+.yarnrc.yml

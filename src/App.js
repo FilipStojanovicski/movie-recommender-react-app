@@ -103,6 +103,7 @@ class PredictedRatingsDisplay extends React.Component {
     this.setState({ genreId: parseInt(event.value) });
   }
 
+
   filterRatingsByGenre() {
     let filteredRatings = this.props.predictedRatings;
 
