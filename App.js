@@ -406,7 +406,7 @@ var App = function (_React$Component3) {
 
       this.setState({ submissionError: false, loadingPredictions: true });
 
-      fetch('/movie_recommendation', {
+      fetch('/movie_recommendation/svd', {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
