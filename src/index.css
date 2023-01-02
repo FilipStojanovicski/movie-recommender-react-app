@@ -92,6 +92,11 @@ main {
   border-radius: 0.125rem;
 }
 
+.rating.header{
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
 .rating .title{
   flex-grow: 2;
 }

@@ -4,7 +4,7 @@ import React from 'react';
 import Select from 'react-select'
 
 
-const ratings = ['not seen', 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0];
+const ratings = ['not seen', 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 
 class MovieRating extends React.Component {
   constructor(props) {
@@ -160,18 +160,21 @@ class PredictedRatingsDisplay extends React.Component {
     let ratingsDisplayObject;
 
     // If there is a submission error display error
-    if (this.props.submissionError == true && this.props.loadingPredictions == false){
+    if (this.props.submissionError == true && this.props.loadingPredictions == false) {
       ratingsDisplayObject = <div className="predicted-ratings-error">
         <h3>Unable to fetch recommendations: please try rating more movies</h3>
       </div>
-    } 
+    }
     // If predictions are loading display loader
     else if (this.props.loadingPredictions == true) {
       ratingsDisplayObject = <div className="loader"></div>;
-    } 
+    }
     // If results successfully loaded without error display results
-    else if (this.props.submissionError == false && this.props.loadingPredictions == false){
+    else if (this.props.submissionError == false && this.props.loadingPredictions == false) {
       ratingsDisplayObject = <div className="ratings-results">
+        <div className="rating header">
+          <div className="title" key="title">Title: </div><div className="movie-img">Score: </div>
+        </div>
         {ratingsToDisplay.map((rating, i) => {
           return <div className="rating">
             <div className="title" key={i}>{rating.title}</div><div className="movie-img">{rating.adjusted_rating}</div>
@@ -213,6 +216,9 @@ class App extends React.Component {
     this.handleNumNeighborsUpdate = this.handleNumNeighborsUpdate.bind(this);
     this.handleEngineUpdate = this.handleEngineUpdate.bind(this);
     this.handleMinSupportUpdate = this.handleMinSupportUpdate.bind(this);
+    this.handleNumFactorsUpdate = this.handleNumFactorsUpdate.bind(this);
+    this.handleNumEpochsUpdate = this.handleNumEpochsUpdate.bind(this);
+    this.handlePopularityBoostUpdate = this.handlePopularityBoostUpdate.bind(this);
 
     let initial_ratings = {}
     for (let i = 0; i < 10; i++) {
@@ -220,8 +226,8 @@ class App extends React.Component {
     }
     this.state = {
       movies: [], genres: [], movie_ratings: initial_ratings, predictedRatings: [],
-      loadingPredictions: false, num_neighbors: 40, min_support: 3, engine: 0,
-      submissionError: false
+      loadingPredictions: false, num_neighbors: 40, min_support: 3, engine: 'svd',
+      submissionError: false, n_factors: 100, n_epochs: 20, popularity_boost: 10
     };
   }
 
@@ -308,35 +314,52 @@ class App extends React.Component {
       return (x.rating && x.rating !== "not seen" && x.movieId)
     })
 
+    // Remove duplicates
+    ratings_list = ratings_list.filter((value, index, self) =>
+      index === self.findIndex((t) => (
+        t.movieId === value.movieId)))
+
     let numRatings = ratings_list.length;
     let engine = this.state.engine;
-    let min_support = parseInt(this.state.min_support);
-    let num_neighbors = parseInt(this.state.num_neighbors);
 
-    if (numRatings === 0){
-      this.setState({submissionError: true})
+    if (numRatings === 0) {
+      this.setState({ submissionError: true })
       console.log("Not enough movies");
       return;
     }
 
-    let body =
-    {
-      ratings: ratings_list,
-      engine: engine,
-      min_support: min_support,
-      num_neighbors: num_neighbors
+    let body = {
+      ratings: ratings_list
     }
 
+    console.log("engine: ", this.state.engine);
+
+    if (engine === 'svd') {
+      body.model_params = {
+        n_factors: parseInt(this.state.n_factors),
+        n_epochs: parseInt(this.state.n_epochs),
+        popularity_boost: parseInt(this.state.popularity_boost)
+      }
+    } else if (engine === 'knn') {
+      body.model_params = {
+        min_support: parseInt(this.state.min_support),
+        num_neighbors: parseInt(this.state.num_neighbors),
+        popularity_boost: parseInt(this.state.popularity_boost)
+      }
+    }
+
+    console.log(engine);
     console.log(body);
 
-    this.setState({ submissionError: false, loadingPredictions: true})
+    this.setState({ submissionError: false, loadingPredictions: true })
 
-    fetch(`/movie_recommendation/svd`, {
+    fetch(`/movie_recommendation/${engine}`, {
       method: "POST",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
       .then(res => {
+        console.log("status: ", res.status);
         return res.json()
       }
       ).then(
@@ -344,17 +367,17 @@ class App extends React.Component {
           console.log(res);
           if (res.status == 200) {
             this.setState({ predictedRatings: res.data, loadingPredictions: false })
-          } else if (res.status == 400){
-            this.setState({submissionError: true, loadingPredictions: false })
-          } else if (res.status == 500){
-            this.setState({submissionError: true, loadingPredictions: false })
+          } else if (res.status == 400) {
+            this.setState({ submissionError: true, loadingPredictions: false })
+          } else if (res.status == 500) {
+            this.setState({ submissionError: true, loadingPredictions: false })
           }
-          
+
         }
       ).catch(
         (error) => {
           console.log(error);
-          this.setState({submissionError: true, loadingPredictions: false })
+          this.setState({ submissionError: true, loadingPredictions: false })
 
         }
       );
@@ -368,6 +391,15 @@ class App extends React.Component {
   }
   handleEngineUpdate(event) {
     this.setState({ engine: event.target.value })
+  }
+  handleNumFactorsUpdate(event) {
+    this.setState({ n_factors: event.target.value })
+  }
+  handleNumEpochsUpdate(event) {
+    this.setState({ n_epochs: event.target.value })
+  }
+  handlePopularityBoostUpdate(event) {
+    this.setState({ popularity_boost: event.target.value })
   }
 
   render() {
@@ -392,27 +424,53 @@ class App extends React.Component {
               <label for="engines-selector">Recommendation engine: </label>
               <select name="engines-selector" id="engines-selector"
                 className="engines selector"
-                onChange={this.handleEngineUpdate}
-              >
-                <option defaultValue="0">User Based KNN</option>
+                onChange={this.handleEngineUpdate}>
+                <option value="svd">SVD</option>
+                <option value="knn">User Based KNN</option>
               </select>
             </div>
-
-            <div className='num-neighbors-option'>
-              <label for="num-neighbors">Number of neighbors (1-100): </label>
-              <input type="number" id="num-neighbors-input" name="num-neighbors"
-                min="1" max="100" defaultValue='40' step='1'
-                className="num-neighbors selector"
-                onChange={this.handleNumNeighborsUpdate}
-              />
-            </div>
-
-            <div className='min-support-option'>
-              <label for="min-support">Minimum support (1-10): </label>
-              <input type="number" id="num-neighbors-input" name="min-support"
-                className="min-support selector"
-                min="1" max="10" defaultValue='3' step='1'
-                onChange={this.handleMinSupportUpdate}
+            {this.state.engine === 'knn' &&
+              <div className='num-neighbors-option'>
+                <label for="num-neighbors">Number of neighbors (1-100): </label>
+                <input type="number" id="num-neighbors-input" name="num-neighbors"
+                  min="1" max="100" defaultValue={this.state.num_neighbors} step='1'
+                  className="num-neighbors selector"
+                  onChange={this.handleNumNeighborsUpdate}
+                />
+              </div>}
+            {this.state.engine === 'knn' &&
+              <div className='min-support-option'>
+                <label for="min-support">Minimum support (1-10): </label>
+                <input type="number" id="num-neighbors-input" name="min-support"
+                  className="min-support selector"
+                  min="1" max="10" defaultValue={this.state.min_support} step='1'
+                  onChange={this.handleMinSupportUpdate}
+                />
+              </div>}
+            {this.state.engine === 'svd' &&
+              <div className='num-factors-option'>
+                <label for="num-factors">Number of factors (1-200): </label>
+                <input type="number" id="num-factors-input" name="num-factors"
+                  min="1" max="200" defaultValue={this.state.n_factors} step='1'
+                  className="num-factors selector"
+                  onChange={this.handleNumFactorsUpdate}
+                />
+              </div>}
+            {this.state.engine === 'svd' &&
+              <div className='num-epochs-option'>
+                <label for="num-epochs">Number of epochs (1-100): </label>
+                <input type="number" id="num-epochs-input" name="num-epochs"
+                  min="1" max="100" defaultValue={this.state.n_epochs} step='1'
+                  className="num-epochs selector"
+                  onChange={this.handleNumEpochsUpdate}
+                />
+              </div>}
+            <div className='popularity-boost-option'>
+              <label for="num-epochs">Popularity Boost (1-100): </label>
+              <input type="number" id="popularity-boost-input" name="popularity-boost"
+                min="0" max="100" defaultValue={this.state.popularity_boost} step='1'
+                className="popularity-boost selector"
+                onChange={this.handlePopularityBoostUpdate}
               />
             </div>
           </div>

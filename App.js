@@ -11,7 +11,7 @@ import './App.css';
 import React from 'react';
 import Select from 'react-select';
 
-var ratings = ['not seen', 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0];
+var ratings = ['not seen', 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 
 var MovieRating = function (_React$Component) {
   _inherits(MovieRating, _React$Component);
@@ -222,6 +222,20 @@ var PredictedRatingsDisplay = function (_React$Component2) {
             ratingsDisplayObject = React.createElement(
               'div',
               { className: 'ratings-results' },
+              React.createElement(
+                'div',
+                { className: 'rating header' },
+                React.createElement(
+                  'div',
+                  { className: 'title', key: 'title' },
+                  'Title: '
+                ),
+                React.createElement(
+                  'div',
+                  { className: 'movie-img' },
+                  'Score: '
+                )
+              ),
               ratingsToDisplay.map(function (rating, i) {
                 return React.createElement(
                   'div',
@@ -279,6 +293,9 @@ var App = function (_React$Component3) {
     _this4.handleNumNeighborsUpdate = _this4.handleNumNeighborsUpdate.bind(_this4);
     _this4.handleEngineUpdate = _this4.handleEngineUpdate.bind(_this4);
     _this4.handleMinSupportUpdate = _this4.handleMinSupportUpdate.bind(_this4);
+    _this4.handleNumFactorsUpdate = _this4.handleNumFactorsUpdate.bind(_this4);
+    _this4.handleNumEpochsUpdate = _this4.handleNumEpochsUpdate.bind(_this4);
+    _this4.handlePopularityBoostUpdate = _this4.handlePopularityBoostUpdate.bind(_this4);
 
     var initial_ratings = {};
     for (var i = 0; i < 10; i++) {
@@ -286,8 +303,8 @@ var App = function (_React$Component3) {
     }
     _this4.state = {
       movies: [], genres: [], movie_ratings: initial_ratings, predictedRatings: [],
-      loadingPredictions: false, num_neighbors: 40, min_support: 3, engine: 0,
-      submissionError: false
+      loadingPredictions: false, num_neighbors: 40, min_support: 3, engine: 'svd',
+      submissionError: false, n_factors: 100, n_epochs: 20, popularity_boost: 10
     };
     return _this4;
   }
@@ -384,10 +401,15 @@ var App = function (_React$Component3) {
         return x.rating && x.rating !== "not seen" && x.movieId;
       });
 
+      // Remove duplicates
+      ratings_list = ratings_list.filter(function (value, index, self) {
+        return index === self.findIndex(function (t) {
+          return t.movieId === value.movieId;
+        });
+      });
+
       var numRatings = ratings_list.length;
       var engine = this.state.engine;
-      var min_support = parseInt(this.state.min_support);
-      var num_neighbors = parseInt(this.state.num_neighbors);
 
       if (numRatings === 0) {
         this.setState({ submissionError: true });
@@ -396,21 +418,36 @@ var App = function (_React$Component3) {
       }
 
       var body = {
-        ratings: ratings_list,
-        engine: engine,
-        min_support: min_support,
-        num_neighbors: num_neighbors
+        ratings: ratings_list
       };
 
+      console.log("engine: ", this.state.engine);
+
+      if (engine === 'svd') {
+        body.model_params = {
+          n_factors: parseInt(this.state.n_factors),
+          n_epochs: parseInt(this.state.n_epochs),
+          popularity_boost: parseInt(this.state.popularity_boost)
+        };
+      } else if (engine === 'knn') {
+        body.model_params = {
+          min_support: parseInt(this.state.min_support),
+          num_neighbors: parseInt(this.state.num_neighbors),
+          popularity_boost: parseInt(this.state.popularity_boost)
+        };
+      }
+
+      console.log(engine);
       console.log(body);
 
       this.setState({ submissionError: false, loadingPredictions: true });
 
-      fetch('/movie_recommendation/svd', {
+      fetch('/movie_recommendation/' + engine, {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       }).then(function (res) {
+        console.log("status: ", res.status);
         return res.json();
       }).then(function (res) {
         console.log(res);
@@ -440,6 +477,21 @@ var App = function (_React$Component3) {
     key: 'handleEngineUpdate',
     value: function handleEngineUpdate(event) {
       this.setState({ engine: event.target.value });
+    }
+  }, {
+    key: 'handleNumFactorsUpdate',
+    value: function handleNumFactorsUpdate(event) {
+      this.setState({ n_factors: event.target.value });
+    }
+  }, {
+    key: 'handleNumEpochsUpdate',
+    value: function handleNumEpochsUpdate(event) {
+      this.setState({ n_epochs: event.target.value });
+    }
+  }, {
+    key: 'handlePopularityBoostUpdate',
+    value: function handlePopularityBoostUpdate(event) {
+      this.setState({ popularity_boost: event.target.value });
     }
   }, {
     key: 'render',
@@ -486,16 +538,20 @@ var App = function (_React$Component3) {
                 'select',
                 { name: 'engines-selector', id: 'engines-selector',
                   className: 'engines selector',
-                  onChange: this.handleEngineUpdate
-                },
+                  onChange: this.handleEngineUpdate },
                 React.createElement(
                   'option',
-                  { defaultValue: '0' },
+                  { value: 'svd' },
+                  'SVD'
+                ),
+                React.createElement(
+                  'option',
+                  { value: 'knn' },
                   'User Based KNN'
                 )
               )
             ),
-            React.createElement(
+            this.state.engine === 'knn' && React.createElement(
               'div',
               { className: 'num-neighbors-option' },
               React.createElement(
@@ -504,12 +560,12 @@ var App = function (_React$Component3) {
                 'Number of neighbors (1-100): '
               ),
               React.createElement('input', { type: 'number', id: 'num-neighbors-input', name: 'num-neighbors',
-                min: '1', max: '100', defaultValue: '40', step: '1',
+                min: '1', max: '100', defaultValue: this.state.num_neighbors, step: '1',
                 className: 'num-neighbors selector',
                 onChange: this.handleNumNeighborsUpdate
               })
             ),
-            React.createElement(
+            this.state.engine === 'knn' && React.createElement(
               'div',
               { className: 'min-support-option' },
               React.createElement(
@@ -519,8 +575,50 @@ var App = function (_React$Component3) {
               ),
               React.createElement('input', { type: 'number', id: 'num-neighbors-input', name: 'min-support',
                 className: 'min-support selector',
-                min: '1', max: '10', defaultValue: '3', step: '1',
+                min: '1', max: '10', defaultValue: this.state.min_support, step: '1',
                 onChange: this.handleMinSupportUpdate
+              })
+            ),
+            this.state.engine === 'svd' && React.createElement(
+              'div',
+              { className: 'num-factors-option' },
+              React.createElement(
+                'label',
+                { 'for': 'num-factors' },
+                'Number of factors (1-200): '
+              ),
+              React.createElement('input', { type: 'number', id: 'num-factors-input', name: 'num-factors',
+                min: '1', max: '200', defaultValue: this.state.n_factors, step: '1',
+                className: 'num-factors selector',
+                onChange: this.handleNumFactorsUpdate
+              })
+            ),
+            this.state.engine === 'svd' && React.createElement(
+              'div',
+              { className: 'num-epochs-option' },
+              React.createElement(
+                'label',
+                { 'for': 'num-epochs' },
+                'Number of epochs (1-100): '
+              ),
+              React.createElement('input', { type: 'number', id: 'num-epochs-input', name: 'num-epochs',
+                min: '1', max: '100', defaultValue: this.state.n_epochs, step: '1',
+                className: 'num-epochs selector',
+                onChange: this.handleNumEpochsUpdate
+              })
+            ),
+            React.createElement(
+              'div',
+              { className: 'popularity-boost-option' },
+              React.createElement(
+                'label',
+                { 'for': 'num-epochs' },
+                'Popularity Boost (1-100): '
+              ),
+              React.createElement('input', { type: 'number', id: 'popularity-boost-input', name: 'popularity-boost',
+                min: '0', max: '100', defaultValue: this.state.popularity_boost, step: '1',
+                className: 'popularity-boost selector',
+                onChange: this.handlePopularityBoostUpdate
               })
             )
           ),
