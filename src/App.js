@@ -3,7 +3,7 @@ import './App.css';
 import React from 'react';
 import Select from 'react-select'
 
-
+// Possible ratings options
 const ratings = ['not seen', 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5];
 
 class MovieRating extends React.Component {
@@ -13,14 +13,13 @@ class MovieRating extends React.Component {
     this.state = { genreId: null }
   }
 
+  // Handle a change in each selector
   handleChange(selector, event) {
     if (selector == "movie") {
       this.props.handleMovieUpdate(this.props.id, event.value);
     } else if (selector == "rating") {
       this.props.handleRatingUpdate(this.props.id, event.value);
     } else if (selector == "genre") {
-      console.log('genre change');
-      console.log(event.value);
       this.setState({ genreId: event.value });
     }
   }
@@ -51,7 +50,6 @@ class MovieRating extends React.Component {
 
     let moviesPlaceholder = (movies && movies.length > 0) ?
       "Type in a movie title..." : "Loading Movies..."
-
     let genresPlaceholder = (genres && genres.length > 0) ?
       "Genre:" : "Loading Genres..."
 
@@ -91,12 +89,9 @@ class MovieRating extends React.Component {
 class PredictedRatingsDisplay extends React.Component {
   constructor(props) {
     super(props);
-
     this.state = { genreId: null }
-
     this.handleGenreChange = this.handleGenreChange.bind(this);
     this.filterRatingsByGenre = this.filterRatingsByGenre.bind(this);
-
   }
 
   handleGenreChange(event) {
@@ -106,21 +101,15 @@ class PredictedRatingsDisplay extends React.Component {
 
   filterRatingsByGenre() {
     let filteredRatings = this.props.predictedRatings;
-
     let genre_name;
     let genreId = this.state.genreId;
 
-    console.log("FILTER RATINGS BY GENRE");
-    console.log(this.state);
     // If we have a specified genre, then filter by that genre only
     if (genreId !== null) {
-      console.log("We have a genre Id");
-      // Get the genre name
+      // Try to get the genre name from the id
       genre_name = this.props.genres.filter((x) => x.genreId === genreId);
-      console.log("GENRE NAME");
-      console.log(genre_name);
+
       if (genre_name.length > 0) {
-        console.log("No matches found");
         genre_name = genre_name[0].genre_name;
       }
     } else {
@@ -132,7 +121,7 @@ class PredictedRatingsDisplay extends React.Component {
         return x.genreId === genreId
       })
     }
-    // Otherwise we remove duplicate movies
+    // If we aren't filtering by genre we need to remove duplicate movies
     else {
       let ratingsDeDuped = []
       for (let i = 0; i < filteredRatings.length; i++) {
@@ -149,7 +138,6 @@ class PredictedRatingsDisplay extends React.Component {
   }
 
   render() {
-    console.log(this.state);
 
     let genresPlaceholder = (this.props.genres && this.props.genres.length > 0) ?
       "Genre:" : "Loading Genres...";
@@ -157,36 +145,40 @@ class PredictedRatingsDisplay extends React.Component {
     let ratingsToDisplay = this.filterRatingsByGenre();
     ratingsToDisplay = ratingsToDisplay.slice(0, 20);
 
+    // Different scenarios for which ratings display object we want to show
     let ratingsDisplayObject;
 
-    // If there is a submission error display error
+    // If there is a submission error display an error message
     if (this.props.submissionError == true && this.props.loadingPredictions == false) {
-      ratingsDisplayObject = <div className="predicted-ratings-error">
-        <h3>Unable to fetch recommendations: please try rating more movies</h3>
-      </div>
+      ratingsDisplayObject =
+          <div className="predicted-ratings-error">
+            <h3>Unable to fetch recommendations: please try rating more movies</h3>
+          </div>
     }
     // If predictions are loading display loader
     else if (this.props.loadingPredictions == true) {
       ratingsDisplayObject = <div className="loader"></div>;
     }
-    // If results successfully loaded without error display results
+    // If results successfully loaded without error display the results
     else if (this.props.submissionError == false && this.props.loadingPredictions == false) {
-      ratingsDisplayObject = <div className="ratings-results">
-        <div className="rating header">
-          <div className="title" key="title">Title: </div><div className="movie-img">Score: </div>
-        </div>
-        {ratingsToDisplay.map((rating, i) => {
-          return <div className="rating">
-            <div className="title" key={i}>{rating.title}</div><div className="movie-img">{rating.adjusted_rating}</div>
+      ratingsDisplayObject =
+          <div className="ratings-results">
+            {ratingsToDisplay.map((rating, i) => {
+              return <div className="rating">
+                <div className="movie-img-title">
+                  <div className="movie-title" key={i}>{rating.title}</div>
+                  <div className="movie-img">
+                    <img src={"https://image.tmdb.org/t/p/w500/" + rating.poster_path}></img></div>
+                </div>
+                <div className="movie-score">Score: {rating.adjusted_rating}</div>
+              </div>
+            }
+            )}
           </div>
-        }
-        )}
-      </div>
     }
 
     return (
       <div className="predicted-ratings">
-
         <Select className="genre selector" id={this.props.name}
           placeholder={genresPlaceholder}
           onChange={this.handleGenreChange}
@@ -196,9 +188,8 @@ class PredictedRatingsDisplay extends React.Component {
           )}
         />
         <div className="ratings-results-container">
-          {ratingsDisplayObject}
+        {ratingsDisplayObject}
         </div>
-
       </div>
     )
   }
@@ -219,6 +210,8 @@ class App extends React.Component {
     this.handleNumFactorsUpdate = this.handleNumFactorsUpdate.bind(this);
     this.handleNumEpochsUpdate = this.handleNumEpochsUpdate.bind(this);
     this.handlePopularityBoostUpdate = this.handlePopularityBoostUpdate.bind(this);
+    this.fetchMoviePredictions = this.fetchMoviePredictions.bind(this);
+    this.fetchMovieImgs = this.fetchMovieImgs.bind(this)
 
     let initial_ratings = {}
     for (let i = 0; i < 10; i++) {
@@ -231,8 +224,10 @@ class App extends React.Component {
     };
   }
 
+  // Function to fetch the movies data from the database via the server
   fetchMoviesRequest(genre = null, limit = null) {
     let movies_url = "/api/movies?"
+    // Optional genre and limit query parameters
     if (genre !== null & genre !== 'null') {
       movies_url += `genre=${encodeURIComponent(genre)}`
     }
@@ -244,71 +239,48 @@ class App extends React.Component {
         res => {
           this.setState({ movies: res })
         }
+      ).catch(
+        (error) => {
+          console.log("Fetch movies request error:", error);
+        }
       );
   }
 
+  // Function to fetch the genres data from the database via the server
   fetchGenresRequest() {
     fetch(`/api/genres?`, { method: "GET" })
       .then(res => res.json()).then(
         res => {
-          // Add one more genre for all genres
+          // Add one more genre for All genres
           let lastGenreId = res.reduce(function (prev, current) {
             return (prev.genreId > current.genreId) ? prev.genreId : current.genreId
           })
           res.unshift({ genreId: lastGenreId + 1, genre_name: "All" })
+
           this.setState({ genres: res })
+        }
+      ).catch(
+        (error) => {
+          console.log("Fetch genres request error:", error);
         }
       );
   }
 
   componentWillMount() {
     this.fetchGenresRequest();
+    // Fetch 1000 movies to display while we wait for all movies to load for a better user experience
     this.fetchMoviesRequest(null, 1000);
   }
 
   componentDidMount() {
+    // Fetch all movies
     this.fetchMoviesRequest();
   }
 
+  // Function to get movie predictions from the recommendation system
+  async fetchMoviePredictions() {
 
-  handleMovieUpdate(id, movie) {
-    let updatedRatings = this.state.movie_ratings;
-    updatedRatings[id].movieId = movie
-
-    let numRatings = Object.keys(updatedRatings).length;
-    // If all of the movie ratings are full, add another rating options
-    if (
-      Object.keys(updatedRatings).filter((x) => {
-        return (updatedRatings[x].rating && updatedRatings[x].rating !== "not seen")
-          && (updatedRatings[x].movieId)
-      }).length === numRatings) {
-      updatedRatings[numRatings] = { movieId: null, rating: null };
-    }
-
-    this.setState({ movie_ratings: updatedRatings });
-  }
-
-  handleRatingUpdate(id, rating) {
-    let updatedRatings = this.state.movie_ratings;
-    updatedRatings[id].rating = rating
-
-    let numRatings = Object.keys(updatedRatings).length;
-    // If all of the movie ratings are full, add another rating options
-    if (
-      Object.keys(updatedRatings).filter((x) => {
-        return (updatedRatings[x].rating && updatedRatings[x].rating !== "not seen")
-          && (updatedRatings[x].movieId)
-      }).length === numRatings) {
-      updatedRatings[numRatings] = { movieId: null, rating: null };
-    }
-
-    this.setState({ movie_ratings: updatedRatings });
-  }
-
-  handleSubmit() {
-
-    console.log('submit');
-
+    // Get all rated movies
     let ratings_list = Object.values(this.state.movie_ratings);
     ratings_list = ratings_list.filter((x) => {
       return (x.rating && x.rating !== "not seen" && x.movieId)
@@ -322,17 +294,14 @@ class App extends React.Component {
     let numRatings = ratings_list.length;
     let engine = this.state.engine;
 
+    // If there are no rated movies return null
     if (numRatings === 0) {
-      this.setState({ submissionError: true })
-      console.log("Not enough movies");
-      return;
+      return null;
     }
 
     let body = {
       ratings: ratings_list
     }
-
-    console.log("engine: ", this.state.engine);
 
     if (engine === 'svd') {
       body.model_params = {
@@ -348,38 +317,149 @@ class App extends React.Component {
       }
     }
 
-    console.log(engine);
-    console.log(body);
-
-    this.setState({ submissionError: false, loadingPredictions: true })
-
-    fetch(`/movie_recommendation/${engine}`, {
+    const response = await fetch(`/movie_recommendation/${this.state.engine}`, {
       method: "POST",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     })
       .then(res => {
-        console.log("status: ", res.status);
+        if (!res.ok) {
+          const message = `An error has occured: ${response.status}`;
+          throw new Error(message);
+        }
         return res.json()
       }
       ).then(
         res => {
-          console.log(res);
           if (res.status == 200) {
-            this.setState({ predictedRatings: res.data, loadingPredictions: false })
-          } else if (res.status == 400) {
-            this.setState({ submissionError: true, loadingPredictions: false })
-          } else if (res.status == 500) {
-            this.setState({ submissionError: true, loadingPredictions: false })
+            // Round the adjusted rating
+            res.data.map((x) => {
+              x.adjusted_rating = Math.round(x.adjusted_rating * 100) / 100;
+            });
+            return res.data;
+          } else if (res.status == 400 || res.status == 500) {
+            return null;
+          }
+        }).catch(
+          (error) => {
+            console.log("Fetch movie recommendations error: ", error);
+            return null;
+          }
+        );
+
+    return response;
+  }
+
+  async fetchMovieImgs(predictedRatings) {
+
+    // Get unique movie ids
+    let movieIds = predictedRatings.map(x => x.movieId);
+    movieIds = [...new Set(movieIds)];
+
+
+    const response = await fetch(`/api/movie_imgs`, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ movieIds: movieIds })
+    })
+      .then(res => {
+        if (!res.ok) {
+          const message = `An error has occured: ${response.status}`;
+          throw new Error(message);
+        }
+        console.log("status: ", res.status);
+        return res.json()
+      }).catch(
+        (error) => {
+          console.log("Fetch movie images error: ", error);
+          return null;
+        }
+      );
+
+    return response;
+  }
+
+  // When a movie is selected
+  handleMovieUpdate(id, movie) {
+    let updatedRatings = this.state.movie_ratings;
+    updatedRatings[id].movieId = movie
+
+    let numRatings = Object.keys(updatedRatings).length;
+    // If all of the movie ratings are filled in, add another rating options
+    if (
+      Object.keys(updatedRatings).filter((x) => {
+        return (updatedRatings[x].rating !== null && updatedRatings[x].rating !== "not seen")
+          && (updatedRatings[x].movieId !== null)
+      }).length === numRatings) {
+      updatedRatings[numRatings] = { movieId: null, rating: null };
+    }
+
+    this.setState({ movie_ratings: updatedRatings });
+  }
+
+  // When a rating is selected
+  handleRatingUpdate(id, rating) {
+    let updatedRatings = this.state.movie_ratings;
+    updatedRatings[id].rating = rating
+
+    let numRatings = Object.keys(updatedRatings).length;
+    // If all of the movie ratings are filled in, add another rating options
+    if (
+      Object.keys(updatedRatings).filter((x) => {
+        return (updatedRatings[x].rating !== null && updatedRatings[x].rating !== "not seen")
+          && (updatedRatings[x].movieId !== null)
+      }).length === numRatings) {
+      updatedRatings[numRatings] = { movieId: null, rating: null };
+    }
+
+    this.setState({ movie_ratings: updatedRatings });
+  }
+
+  handleSubmit() {
+
+    this.setState({ submissionError: false, loadingPredictions: true })
+
+    this.fetchMoviePredictions().then((predictions) => {
+      if (predictions !== null) {
+
+        // Assign an empty poster_path to all of the predictions
+        predictions.map((x) => { x.poster_path = null })
+
+        this.fetchMovieImgs(predictions).then((predictionsImages) => {
+          if (predictionsImages !== null) {
+            // Create look up by movie id and poster path
+            let predictionsImagesObj = {}
+            predictionsImages.map((x) => {
+              predictionsImagesObj[x.movieId] = x.poster_path
+            })
+
+            // Assign a poster_path to each movie by id
+            predictions.map((x) => {
+              if (predictionsImagesObj.hasOwnProperty(x.movieId)) {
+                x.poster_path = predictionsImagesObj[x.movieId];
+              }
+            })
           }
 
-        }
-      ).catch(
-        (error) => {
+          // Whether we have the images or not we still want to update the predicted ratings
+          this.setState({ submissionError: false, loadingPredictions: false, predictedRatings: predictions })
+        }).catch((error) => {
           console.log(error);
-          this.setState({ submissionError: true, loadingPredictions: false })
-
+          // If something goes wrong fetching the images we should still update the predicted ratings
+          this.setState({ submissionError: false, loadingPredictions: false, predictedRatings: predictions })
         }
+        )
+      }
+      else {
+        // If we weren't about to fetch predictions should show an error
+        this.setState({ submissionError: true, loadingPredictions: false })
+      }
+    }
+    )
+      .catch((error) => {
+        // If something went wrong fetching the predictions we should show an error
+        this.setState({ submissionError: true, loadingPredictions: false })
+      }
       );
   }
 
@@ -403,10 +483,9 @@ class App extends React.Component {
   }
 
   render() {
-    console.log("app state");
-    console.log(this.state);
-    let movie_ratings = this.state.movie_ratings;
 
+    let movie_ratings = this.state.movie_ratings;
+    
     return (
       <div className="App">
         <h2>Rate some movies to get started!</h2>

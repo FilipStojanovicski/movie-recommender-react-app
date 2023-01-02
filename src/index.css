@@ -87,22 +87,30 @@ main {
 .ratings-results .rating{
   display: flex;
   flex-wrap: wrap;
+  text-align: left;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  gap: 2rem;
   padding: .5rem 0;
   border: 0.0675rem solid lightgrey;
   border-radius: 0.125rem;
-}
-
-.rating.header{
-  font-size: 1.25rem;
   font-weight: bold;
 }
 
-.rating .title{
-  flex-grow: 2;
+.rating .movie-img-title{
+  text-align: center;
+  width: 250px;
 }
-.rating .movie-img{
-  flex-grow: 1;
+.movie-img-title .movie-title{
+  padding: 1rem 0rem;
 }
+.movie-img img{
+  object-fit: contain;
+  height: 200px;
+  width: 200px;
+}
+
 
 .predicted-ratings {
   margin: auto;
