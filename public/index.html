@@ -23,14 +23,48 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   <link href=' http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="%PUBLIC_URL%/css/header.css">
+  <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
   <title>Movie Recommendation Engine</title>
+
 </head>
 
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
+  <header class="header" id="header">
+    <nav class="nav container">
+       <a href="/">
+          <div class="nav__logo">
+             <img class="nav__logo-img" src="favicon.ico" alt="">
+             <p class="nav__logo-text">Movie Recommender</p>
+          </div>
+       </a>
+       <div class="nav__menu" id="nav-menu">
+          <ul class="nav__list grid">
+             <li class="nav__item">
+                <a href="/" class="nav__link active-link">
+                <i class="uil uil-robot nav__icon"></i> Recommmendation Engine
+                </a>
+             </li>
+             <li class="nav__item">
+                <a href="/howitworks" class="nav__link">
+                <i class="uil uil-question-circle nav__icon"></i> How it Works
+                </a>
+             </li>
+          </ul>
+          <i class="uil uil-times nav__close" id="nav-close"></i>
+       </div>
+       <div class="nav__btns">
+          <div class="nav__toggle" id="nav-toggle">
+             <i class="uil uil-apps"></i>
+          </div>
+       </div>
+    </nav>
+ </header>
   <main class="main">
-    <h1 class="title">Movie Recommendation Engine</h1>
     <!-- <img src ="https://image.tmdb.org/t/p/original/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg"></img> -->
+    <section id="main-app" class="main-app container">
+    <h1 class="title">Movie Recommendation Engine</h1>
     <div id="root"></div>
     <!--
       This HTML file is a template.
@@ -42,7 +76,9 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    </section>
   </main>
 </body>
+<script src="%PUBLIC_URL%/javascript/header.js"></script>
 
 </html>
